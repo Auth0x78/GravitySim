@@ -2,11 +2,22 @@
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <openglDebug.h>
-#include <demoShaderLoader.h>
 #include <iostream>
+#include <vector>
+
+#include <VAO.h>
+#include <VBO.h>
+#include <EBO.h>
+#include <shader.h>
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 
-#define USE_GPU_ENGINE 0
+#define PI 3.14159265359
+
+#define USE_GPU_ENGINE 1
 extern "C"
 {
 	__declspec(dllexport) unsigned long NvOptimusEnablement = USE_GPU_ENGINE;
@@ -14,10 +25,72 @@ extern "C"
 }
 
 
+glm::vec3 cameraPos = glm::vec3(0, -0.25f, 3.0f);  // Position
+glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); // Direction (Looking forward)
+glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);  // Up vector
+
+float deltaTime = 0.0f; // Time between current frame and last frame
+float lastFrame = 0.0f;  // Time of last frame
+
+
 static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
 {
 	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, GLFW_TRUE);
+
+	float cameraSpeed = 2.5f * deltaTime; // Adjust based on frame time
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cameraPos += cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cameraPos -= cameraSpeed * cameraFront;
+	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
+
+	static float lastX = width / 2.0f, lastY = height / 2.0f;
+	static float yaw = -90.0f, pitch = 0.0f;
+
+	float xOffset = xpos - lastX;
+	float yOffset = lastY - ypos; // Inverted
+	lastX = xpos;
+	lastY = ypos;
+
+	float sensitivity = 2.0f * deltaTime;
+	xOffset *= sensitivity;
+	yOffset *= sensitivity;
+
+	yaw += xOffset;
+	pitch += yOffset;
+	pitch = glm::clamp(pitch, -89.0f, 89.0f); // Prevent flipping
+
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	cameraFront = glm::normalize(direction);
+}
+
+
+static void genSpherePoints(std::vector<float>& vertex, uint16_t lonRes = 200, uint16_t latRes = 200) {
+	vertex.reserve(lonRes * latRes);
+	const float r = 0.5;
+
+	for(uint16_t j = 0; j < latRes; ++j) {
+		for(uint16_t i = 0; i < lonRes; ++i) {
+			float phi = 2 * PI * i / lonRes; // PHI
+			float theta = PI * j / latRes; // theta
+
+			vertex.push_back(r * cos(phi) * sin(theta)); // x = sin theta * cos phi
+			vertex.push_back(r * sin(phi) * sin(theta)); // y = sin theta * sin phi
+			vertex.push_back(r * cos(theta)); // z = cos theta
+		}
+	}
 }
 
 int main(void)
@@ -33,12 +106,12 @@ int main(void)
 #pragma endregion
 
 
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	//glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 5);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
 	//glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE); //you might want to do this when testing the game for shipping
 
 
-	GLFWwindow *window = window = glfwCreateWindow(640, 480, "Simple example", NULL, NULL);
+	GLFWwindow *window = window = glfwCreateWindow(640, 480, "Gravity Sim", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -46,6 +119,8 @@ int main(void)
 	}
 
 	glfwSetKeyCallback(window, key_callback);
+	glfwSetCursorPosCallback(window, mouse_callback);
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	glfwMakeContextCurrent(window);
 	gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
@@ -59,29 +134,64 @@ int main(void)
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #pragma endregion
 
-	//shader loading example
-	Shader s;
-	s.loadShaderProgramFromFile(RESOURCES_PATH "vertex.vert", RESOURCES_PATH "fragment.frag");
-	s.bind();
+#pragma region Define Camera Properties
+	int width = 0, height = 0;
+	glfwGetFramebufferSize(window, &width, &height);
 
+	// View Matrix (Camera Transformation)
+	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+	// Projection Matrix (Perspective)
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 300.0f);
+
+#pragma endregion
+
+	// Create Simple Triangle VAO VBO
+	VAO sphere;
+	sphere.Bind();
+	
+	std::vector<float> verts;
+	genSpherePoints(verts);
+
+	VBO vertex(verts.data(), verts.size());
+	sphere.LinkAttrib(vertex, 0, 3, GL_FLOAT, 3 * sizeof(float), (void*)0);
+	sphere.Unbind();
+
+	//shader loading example
+	Shader mainShader(RESOURCES_PATH "vertex.vert", RESOURCES_PATH "fragment.frag");
+
+	mainShader.Activate();
+	mainShader.SetUniformMatrix4fv("view", view);
+	mainShader.SetUniformMatrix4fv("projection", projection);
+	
 	while (!glfwWindowShouldClose(window))
 	{
-		int width = 0, height = 0;
+		float currentFrame = glfwGetTime(); // Get current time in seconds
+		deltaTime = currentFrame - lastFrame; // Compute delta time
+		lastFrame = currentFrame; // Update last frame time
 
 		glfwGetFramebufferSize(window, &width, &height);
 		glViewport(0, 0, width, height);
-		glClear(GL_COLOR_BUFFER_BIT);
 
-		//I'm using the old pipeline here just to test, you shouldn't learn this,
-		//Also It might not work on apple
-		glBegin(GL_TRIANGLES);
-		glColor3f(1, 0, 0);
-		glVertex2f(0,1);
-		glColor3f(0, 1, 0);
-		glVertex2f(1,-1);
-		glColor3f(0, 0, 1);
-		glVertex2f(-1,-1);
-		glEnd();
+		// View Matrix (Camera Transformation)
+		glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+
+		// Projection Matrix (Perspective)
+		glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 300.0f);
+
+		mainShader.SetUniformMatrix4fv("view", view);
+		mainShader.SetUniformMatrix4fv("projection", projection);
+
+		// Specify the color of the background
+		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+		// Clean the back buffer and depth buffer
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glEnable(GL_DEPTH_TEST);
+
+
+		sphere.Bind();
+		glDrawArrays(GL_POINTS, 0, verts.size());
+		sphere.Unbind();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -89,7 +199,7 @@ int main(void)
 
 	//there is no need to call the clear function for the libraries since the os will do that for us.
 	//by calling this functions we are just wasting time.
-	//glfwDestroyWindow(window);
-	//glfwTerminate();
+	glfwDestroyWindow(window);
+	glfwTerminate();
 	return 0;
 }
