@@ -1,21 +1,24 @@
+﻿#pragma region Main Headers
 #include <glad/glad.h>
 #define GLFW_INCLUDE_NONE
 #include <GLFW/glfw3.h>
 #include <openglDebug.h>
-#include <iostream>
 #include <vector>
-
+#include <iostream>
+#pragma endregion
+#pragma region GLM Includes
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#pragma endregion
+#pragma region My Library Includes
 #include <VAO.h>
 #include <VBO.h>
 #include <EBO.h>
 #include <shader.h>
+#include <sphere.h>
+#pragma endregion
 
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-
-#define PI 3.14159265359
 
 #define USE_GPU_ENGINE 1
 extern "C"
@@ -23,7 +26,6 @@ extern "C"
 	__declspec(dllexport) unsigned long NvOptimusEnablement = USE_GPU_ENGINE;
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = USE_GPU_ENGINE;
 }
-
 
 glm::vec3 cameraPos = glm::vec3(0, -0.25f, 3.0f);  // Position
 glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); // Direction (Looking forward)
@@ -76,21 +78,8 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 	cameraFront = glm::normalize(direction);
 }
 
-
-static void genSpherePoints(std::vector<float>& vertex, uint16_t lonRes = 200, uint16_t latRes = 200) {
-	vertex.reserve(lonRes * latRes);
-	const float r = 0.5;
-
-	for(uint16_t j = 0; j < latRes; ++j) {
-		for(uint16_t i = 0; i < lonRes; ++i) {
-			float phi = 2 * PI * i / lonRes; // PHI
-			float theta = PI * j / latRes; // theta
-
-			vertex.push_back(r * cos(phi) * sin(theta)); // x = sin theta * cos phi
-			vertex.push_back(r * sin(phi) * sin(theta)); // y = sin theta * sin phi
-			vertex.push_back(r * cos(theta)); // z = cos theta
-		}
-	}
+float map(int value, int a, int b, float c, float d) {
+	return c + (d - c) * (float(value - a) / float(b - a));
 }
 
 int main(void)
@@ -146,16 +135,7 @@ int main(void)
 
 #pragma endregion
 
-	// Create Simple Triangle VAO VBO
-	VAO sphere;
-	sphere.Bind();
-	
-	std::vector<float> verts;
-	genSpherePoints(verts);
-
-	VBO vertex(verts.data(), verts.size());
-	sphere.LinkAttrib(vertex, 0, 3, GL_FLOAT, 3 * sizeof(float), (void*)0);
-	sphere.Unbind();
+	Sphere sphere0(1.0f, 10, 10);
 
 	//shader loading example
 	Shader mainShader(RESOURCES_PATH "vertex.vert", RESOURCES_PATH "fragment.frag");
@@ -187,11 +167,8 @@ int main(void)
 		// Clean the back buffer and depth buffer
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glEnable(GL_DEPTH_TEST);
-
-
-		sphere.Bind();
-		glDrawArrays(GL_POINTS, 0, verts.size());
-		sphere.Unbind();
+		
+		sphere0.Draw();
 
 		glfwSwapBuffers(window);
 		glfwPollEvents();
