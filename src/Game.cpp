@@ -1,7 +1,8 @@
 #include "Game.h"
 
 Game::Game(SDL_Window* window, SDL_GLContext glContext) 
-	: m_pWindow(window), m_GLContext(glContext) {
+	: m_pWindow(window), m_GLContext(glContext), m_mainShader(RESOURCES_PATH "vertex.vert", RESOURCES_PATH "fragment.frag"){
+
 	// ImGui Initialisation
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
@@ -13,14 +14,75 @@ Game::Game(SDL_Window* window, SDL_GLContext glContext)
 
 	ImGui_ImplSDL3_InitForOpenGL(window, glContext);
 	ImGui_ImplOpenGL3_Init("#version 440");
+
+	// Get window width and height
+	SDL_GetWindowSizeInPixels(m_pWindow, &m_width, &m_height);
+
+	m_projection = glm::perspective(glm::radians(45.0f), (float)m_width / m_height, 0.1f, 300.0f); 
+	m_view = glm::lookAt(m_cameraPos, m_cameraPos + m_cameraFront, m_cameraUp);
 }
 
-void Game::GameLoop() {
+void Game::PollEvents() {
+	SDL_Event event;
+	while (SDL_PollEvent(&event)) {
+		ImGui_ImplSDL3_ProcessEvent(&event);
+		switch (event.type) {
+		case SDL_EVENT_QUIT:
+			m_running = false;
+			break;
+		case SDL_EVENT_WINDOW_RESIZED:
+			SDL_GetWindowSizeInPixels(m_pWindow, &m_width, &m_height);
+			glViewport(0, 0, m_width, m_height);
+			m_projection = glm::perspective(glm::radians(45.0f), (float)m_width / m_height, 0.1f, 300.0f);
+			
+			// Update Projection matrix
+			m_mainShader.SetUniformMatrix4fv("projection", m_projection);
+			break;
+		case SDL_EVENT_KEY_DOWN:
+			if (event.key.scancode == SDL_SCANCODE_ESCAPE) {
+				m_lookMode = !m_lookMode;
+				SDL_SetWindowRelativeMouseMode(m_pWindow, m_lookMode ? true : false);
+				
+				if (m_lookMode) 
+					SDL_HideCursor();
+				else 
+					SDL_ShowCursor();
+			}
+			break;
+		case SDL_EVENT_MOUSE_MOTION:
+			handleMouseEvent(event);
+			break;
+		default:
+			break;
+		}
+	}
+}
+
+bool Game::GameLoop() {
 	// Specify the color of the background
-	glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
+	glClearColor(0.035f, 0.075f, 0.085f, 1.0f);
 	// Clean the back buffer and depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
+
+	// Active Main Shader
+	m_mainShader.Activate();
+
+	// Update View Matrix
+	m_projection = glm::perspective(glm::radians(45.0f), (float)m_width / m_height, 0.1f, 300.0f);
+	m_view = glm::lookAt(m_cameraPos, m_cameraPos + m_cameraFront, m_cameraUp);
+
+	// Update Projection matrix
+	m_mainShader.SetUniformMatrix4fv("projection", m_projection);
+	m_mainShader.SetUniformMatrix4fv("view", m_view);
+
+	for (auto& planet : m_vPlanets) {
+		m_mainShader.SetUniformMatrix4fv("model", planet.renderer.GetModelMatrix());
+		m_mainShader.SetUniform3fv("material", planet.material);
+		planet.renderer.Draw();
+	}
+
+	return m_running;
 }
 
 void Game::RenderUI() {
@@ -50,6 +112,9 @@ void Game::RenderUI() {
 		}
 
 		m_vPlanets.emplace_back(m_uiInputMass, m_uiInputRadius, m_uiInputPos, m_uiInputVel, m_uiInputCol, m_uiInputName);
+		Planet& planet = m_vPlanets.back();
+
+		planet.renderer.SetPosition(planet.position);
 	}
 	ImGui::End();
 
@@ -86,6 +151,40 @@ void Game::RenderUI() {
 	}
 }
 
+void Game::handleMouseEvent(SDL_Event& event) {
+	if (!m_lookMode) return;
+
+	// For absolute mouse motion
+	//float x_pos = float(event.motion.x);
+	//float y_pos = float(event.motion.y);
+
+	//static float lastX = m_width / 2.0f, lastY = m_height / 2.0f;
+	//static float yaw = -90.0f, pitch = 0.0f;
+	//float xOffset = x_pos - lastX;
+	//float yOffset = lastY - y_pos; // Inverted
+	//lastX = x_pos;
+	//lastY = y_pos;
+
+	// For relative mouse motion
+	static float yaw = -90.0f, pitch = 0.0f;
+	float xOffset = float(event.motion.xrel);
+	float yOffset = -float(event.motion.yrel); // Inverted
+
+	float sensitivity = 2.0f * deltaTime;
+	xOffset *= sensitivity;
+	yOffset *= sensitivity;
+
+	yaw += xOffset;
+	pitch += yOffset;
+	pitch = glm::clamp(pitch, -89.0f, 89.0f); // Prevent flipping
+
+	glm::vec3 direction;
+	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+	direction.y = sin(glm::radians(pitch));
+	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+	m_cameraFront = glm::normalize(direction);
+}
+
 Game::~Game() {
 	Shutdown();
 }
@@ -95,3 +194,4 @@ void Game::Shutdown() {
 	ImGui_ImplSDL3_Shutdown();
 	ImGui::DestroyContext();
 }
+

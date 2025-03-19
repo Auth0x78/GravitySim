@@ -1,15 +1,5 @@
 ﻿#include "Game.h"
 
-// Global Data
-int width = 0, height = 0;
-
-glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);  // Position
-glm::vec3 cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); // Direction (Looking forward)
-glm::vec3 cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);  // Up vector
-
-double deltaTime = 0.0f; // Time between current frame and last frame
-double lastFrame = 0.0f;  // Time of last frame
-
 #define USE_GPU_ENGINE 1
 extern "C"
 {
@@ -61,7 +51,9 @@ extern "C"
 //}
 
 int main(void) {
-	
+
+	int width = 0, height = 0;
+
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_EVENTS) < 0) {
 		printf("Could not initialize SDL: %s.\n", SDL_GetError());
 		return -1;
@@ -99,17 +91,11 @@ int main(void) {
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #pragma endregion
 
-#pragma region Define Camera Properties
+	// Set relative mouse mode
+	SDL_SetWindowRelativeMouseMode(pWindow, true); // Enable relative mouse mode
 
-	SDL_GetWindowSize(pWindow, &width, &height);
-
-	// View Matrix (Camera Transformation)
-	glm::mat4 view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
-
-	// Projection Matrix (Perspective)
-	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 300.0f);
-
-#pragma endregion
+	// Get Window width and height
+	SDL_GetWindowSizeInPixels(pWindow, &width, &height);
 
 	Sphere sphere0(1.0f, 10, 10);
 
@@ -117,45 +103,39 @@ int main(void) {
 	Shader mainShader(RESOURCES_PATH "vertex.vert", RESOURCES_PATH "fragment.frag");
 
 	mainShader.Activate();
+	/*
 	mainShader.SetUniformMatrix4fv("view", view);
 	mainShader.SetUniformMatrix4fv("projection", projection);
+	*/
+
+	// Timing variables
+	Uint64 NOW = SDL_GetPerformanceCounter();
+	Uint64 LAST = 0;
+	double deltaT;
 
 	// Main Game Class
 	Game mainGame(pWindow, glContext);
 
 	bool running = true;
 	while (running) {
-		SDL_Event event;
-		while (SDL_PollEvent(&event)) {
-			ImGui_ImplSDL3_ProcessEvent(&event);
-			switch (event.type) {
-				case SDL_EVENT_QUIT:
-					running = false;
-					break;
-				case SDL_EVENT_WINDOW_RESIZED:
-					SDL_GetWindowSize(pWindow, &width, &height);
-					glViewport(0, 0, width, height);
-					projection = glm::perspective(glm::radians(45.0f), (float)width / height, 0.1f, 300.0f);
-					break;
-				default:
-					break;
-			}
-		}
+		LAST = NOW;
+		NOW = SDL_GetPerformanceCounter();
 
-		//// View Matrix (Camera Transformation)
-		//view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		// Calculate deltaTime (time elapsed between frames)
+		deltaT = (double)(NOW - LAST) / SDL_GetPerformanceFrequency();
 
-		//double currentFrame = SDL_GetTicksNS() * 1e-9f; // Get current time in seconds
-		//deltaTime = currentFrame - lastFrame; // Compute delta time
-		//lastFrame = currentFrame; // Update last frame time
+		// Update deltaTime calculations
+		mainGame.deltaTime = deltaT;
+		mainGame.elapsedTime += deltaT;
 
-		//mainShader.SetUniformMatrix4fv("view", view);
-		//mainShader.SetUniformMatrix4fv("projection", projection);
-		//sphere0.Draw();
+		// Poll Window Events
+		mainGame.PollEvents();
 		
-		mainGame.GameLoop();
+		// Run the actual Game & UI
+		running = mainGame.GameLoop();
 		mainGame.RenderUI();
 
+		// Swap frame buffers
 		SDL_GL_SwapWindow(pWindow);
 	}
 

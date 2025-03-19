@@ -1,10 +1,14 @@
 #pragma once
 #pragma region Main Headers
 #include <glad/glad.h>
-#include <SDL3/SDL.h>
 #include <openglDebug.h>
 #include <vector>
 #include <iostream>
+#pragma endregion
+
+#pragma region SDL3 Headers
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_mouse.h>
 #pragma endregion
 
 #pragma region IMGui Includes
@@ -86,25 +90,55 @@ struct Planet {
 class Game {
 public:
 	Game(SDL_Window* window, SDL_GLContext glContext);
-	void GameLoop();
+	void PollEvents();
+	bool GameLoop();
 	void RenderUI();
 
 	~Game();
 	void Shutdown();
 
 private:
+	void handleMouseEvent(SDL_Event& event);
+
+public:
+	// Time Calculation Variables
+	double deltaTime = 0.0f;
+	double elapsedTime = 0.0f;
+
+private:
 	SDL_Window* m_pWindow;
 	SDL_GLContext m_GLContext;
 	ImGuiIO* m_pIO;
+	bool m_running = true;
+	bool m_lookMode = true;
+
+	// Window Property
+	int m_width = 0;
+	int m_height = 0;
+
+
+	// Main Shader
+	Shader m_mainShader;
+
+	// Camera Variables
+	glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);  // Position
+	glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); // Direction (Looking forward)
+	glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);  // Up vector
+
+	// View Matrix (Camera Transformation)
+	glm::mat4 m_view;
+
+	// Projection Matrix (Perspective)
+	glm::mat4 m_projection;
 
 	// Game Variables
 	std::vector<Planet> m_vPlanets;
 
 	// Add Planet Menu Variables
-	double m_uiInputMass = 0;
-	double m_uiInputRadius = 0;
+	double m_uiInputMass = 10;
+	double m_uiInputRadius = 1.0;
 	float  m_uiInputPos[3] = {0.0f, 0.0f, 0.0f};
 	float  m_uiInputVel[3] = {0.0f, 0.0f, 0.0f};
-	float  m_uiInputCol[3] = {0.0f, 0.0f, 0.0f};
+	float  m_uiInputCol[3] = {1.0f, 1.0f, 1.0f};
 	char   m_uiInputName[16] = {0};
 };
