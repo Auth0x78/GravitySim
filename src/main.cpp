@@ -1,24 +1,4 @@
-﻿#pragma region Main Headers
-#include <glad/glad.h>
-#include <SDL3/SDL.h>
-#include <openglDebug.h>
-#include <vector>
-#include <iostream>
-#pragma endregion
-
-#pragma region GLM Includes
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#pragma endregion
-
-#pragma region My Library Includes
-#include <VAO.h>
-#include <VBO.h>
-#include <EBO.h>
-#include <shader.h>
-#include <sphere.h>
-#pragma endregion
+﻿#include "Game.h"
 
 // Global Data
 int width = 0, height = 0;
@@ -139,12 +119,15 @@ int main(void) {
 	mainShader.Activate();
 	mainShader.SetUniformMatrix4fv("view", view);
 	mainShader.SetUniformMatrix4fv("projection", projection);
-	
+
+	// Main Game Class
+	Game mainGame(pWindow, glContext);
+
 	bool running = true;
-	
 	while (running) {
 		SDL_Event event;
 		while (SDL_PollEvent(&event)) {
+			ImGui_ImplSDL3_ProcessEvent(&event);
 			switch (event.type) {
 				case SDL_EVENT_QUIT:
 					running = false;
@@ -159,23 +142,19 @@ int main(void) {
 			}
 		}
 
-		// View Matrix (Camera Transformation)
-		view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+		//// View Matrix (Camera Transformation)
+		//view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
 
-		double currentFrame = SDL_GetTicksNS() * 1e-9f; // Get current time in seconds
-		deltaTime = currentFrame - lastFrame; // Compute delta time
-		lastFrame = currentFrame; // Update last frame time
+		//double currentFrame = SDL_GetTicksNS() * 1e-9f; // Get current time in seconds
+		//deltaTime = currentFrame - lastFrame; // Compute delta time
+		//lastFrame = currentFrame; // Update last frame time
 
-		mainShader.SetUniformMatrix4fv("view", view);
-		mainShader.SetUniformMatrix4fv("projection", projection);
-
-		// Specify the color of the background
-		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
-		// Clean the back buffer and depth buffer
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glEnable(GL_DEPTH_TEST);
+		//mainShader.SetUniformMatrix4fv("view", view);
+		//mainShader.SetUniformMatrix4fv("projection", projection);
+		//sphere0.Draw();
 		
-		sphere0.Draw();
+		mainGame.GameLoop();
+		mainGame.RenderUI();
 
 		SDL_GL_SwapWindow(pWindow);
 	}

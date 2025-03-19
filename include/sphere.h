@@ -25,6 +25,10 @@ public:
 		p_vertexArray->Unbind();
 	}
 	
+	void SetPosition(const glm::vec3& position) {
+		modelMat[3] = glm::vec4(position, modelMat[3].w);
+	}
+
 	void SetModelMatrix(const glm::mat4& model) {
 		modelMat = model;
 	}
@@ -34,7 +38,6 @@ public:
 	}
 
 private:
-
 	void Init(float r = 1.0f, GLuint latDiv = 50, GLuint lonDiv = 50) {
 		std::vector<glm::vec3> vertex;
 		std::vector<GLuint> indices;
