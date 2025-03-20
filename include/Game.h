@@ -99,6 +99,15 @@ public:
 
 private:
 	void handleMouseEvent(SDL_Event& event);
+	void handleKeyboard();
+
+	enum KeyState {
+		KEY_NOT_PRESSED = 0x00,
+		KEY_UP   = 0x01,
+		KEY_DOWN = 0x02,
+		KEY_HELD = 0x03,
+	};
+	KeyState getKeyState(SDL_Scancode scancode);
 
 public:
 	// Time Calculation Variables
@@ -112,11 +121,14 @@ private:
 	bool m_running = true;
 	bool m_lookMode = true;
 
-	// Window Property
+	// SDL Property
 	int m_width = 0;
 	int m_height = 0;
 
-
+	// Keyboard Variables
+	Uint8 m_currentFrameKeyPress[SDL_SCANCODE_COUNT] = { 0 };
+	Uint8 m_lastFrameKeyPress[SDL_SCANCODE_COUNT] = { 0 };
+	
 	// Main Shader
 	Shader m_mainShader;
 

@@ -20,10 +20,15 @@ Game::Game(SDL_Window* window, SDL_GLContext glContext)
 
 	m_projection = glm::perspective(glm::radians(45.0f), (float)m_width / m_height, 0.1f, 300.0f); 
 	m_view = glm::lookAt(m_cameraPos, m_cameraPos + m_cameraFront, m_cameraUp);
+
+	// Update Projection matrix
+	m_mainShader.SetUniformMatrix4fv("projection", m_projection);
+	m_mainShader.SetUniformMatrix4fv("view", m_view);
 }
 
 void Game::PollEvents() {
 	SDL_Event event;
+
 	while (SDL_PollEvent(&event)) {
 		ImGui_ImplSDL3_ProcessEvent(&event);
 		switch (event.type) {
@@ -34,20 +39,20 @@ void Game::PollEvents() {
 			SDL_GetWindowSizeInPixels(m_pWindow, &m_width, &m_height);
 			glViewport(0, 0, m_width, m_height);
 			m_projection = glm::perspective(glm::radians(45.0f), (float)m_width / m_height, 0.1f, 300.0f);
-			
+
 			// Update Projection matrix
 			m_mainShader.SetUniformMatrix4fv("projection", m_projection);
 			break;
+		case SDL_EVENT_KEY_UP:
+			// Update current frame key press
+			m_currentFrameKeyPress[event.key.scancode] = 0;
+			break;
 		case SDL_EVENT_KEY_DOWN:
-			if (event.key.scancode == SDL_SCANCODE_ESCAPE) {
-				m_lookMode = !m_lookMode;
-				SDL_SetWindowRelativeMouseMode(m_pWindow, m_lookMode ? true : false);
-				
-				if (m_lookMode) 
-					SDL_HideCursor();
-				else 
-					SDL_ShowCursor();
-			}
+			// Ignore repeat key press event
+			if (event.key.repeat) break;
+
+			// Update current frame key press
+			m_currentFrameKeyPress[event.key.scancode] = 1;
 			break;
 		case SDL_EVENT_MOUSE_MOTION:
 			handleMouseEvent(event);
@@ -56,9 +61,13 @@ void Game::PollEvents() {
 			break;
 		}
 	}
+
 }
 
 bool Game::GameLoop() {
+	// Handle Keyboard Input
+	handleKeyboard();
+
 	// Specify the color of the background
 	glClearColor(0.035f, 0.075f, 0.085f, 1.0f);
 	// Clean the back buffer and depth buffer
@@ -73,7 +82,6 @@ bool Game::GameLoop() {
 	m_view = glm::lookAt(m_cameraPos, m_cameraPos + m_cameraFront, m_cameraUp);
 
 	// Update Projection matrix
-	m_mainShader.SetUniformMatrix4fv("projection", m_projection);
 	m_mainShader.SetUniformMatrix4fv("view", m_view);
 
 	for (auto& planet : m_vPlanets) {
@@ -81,6 +89,9 @@ bool Game::GameLoop() {
 		m_mainShader.SetUniform3fv("material", planet.material);
 		planet.renderer.Draw();
 	}
+
+	// Copy current frame key press to last frame key press
+	std::memcpy(m_lastFrameKeyPress, m_currentFrameKeyPress, sizeof(m_currentFrameKeyPress));
 
 	return m_running;
 }
@@ -183,6 +194,50 @@ void Game::handleMouseEvent(SDL_Event& event) {
 	direction.y = sin(glm::radians(pitch));
 	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
 	m_cameraFront = glm::normalize(direction);
+}
+
+void Game::handleKeyboard() {
+
+	// TAB KEY PRESS
+	if (getKeyState(SDL_SCANCODE_TAB) == KEY_DOWN) {
+		// Toggle Cursor
+		m_lookMode = !m_lookMode;
+		SDL_SetWindowRelativeMouseMode(m_pWindow, m_lookMode);
+		m_lookMode ? SDL_HideCursor() : SDL_ShowCursor();
+	}
+
+	// ESC KEY PRESS
+	if (getKeyState(SDL_SCANCODE_ESCAPE) == KEY_DOWN) {
+		// Toggle running state
+		m_running = false;
+	}
+
+	// Update Camera Position
+	static float cameraSpeed = 5.0f * deltaTime; // Adjust based on frame time
+	if (getKeyState(SDL_SCANCODE_W) == KEY_DOWN || getKeyState(SDL_SCANCODE_W) == KEY_HELD)
+		m_cameraPos += cameraSpeed * m_cameraFront;
+	if (getKeyState(SDL_SCANCODE_S) == KEY_DOWN || getKeyState(SDL_SCANCODE_S) == KEY_HELD)
+		m_cameraPos -= cameraSpeed * m_cameraFront;
+	if (getKeyState(SDL_SCANCODE_A) == KEY_DOWN || getKeyState(SDL_SCANCODE_A) == KEY_HELD)
+		m_cameraPos -= glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * cameraSpeed;
+	if (getKeyState(SDL_SCANCODE_D) == KEY_DOWN || getKeyState(SDL_SCANCODE_D) == KEY_HELD)
+		m_cameraPos += glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * cameraSpeed;
+	if (getKeyState(SDL_SCANCODE_LSHIFT) == KEY_DOWN || getKeyState(SDL_SCANCODE_LSHIFT) == KEY_HELD)
+		m_cameraPos -= cameraSpeed * m_cameraUp;
+	if (getKeyState(SDL_SCANCODE_SPACE) == KEY_DOWN || getKeyState(SDL_SCANCODE_SPACE) == KEY_HELD)
+		m_cameraPos += cameraSpeed * m_cameraUp;
+}
+
+Game::KeyState Game::getKeyState(SDL_Scancode scancode) {
+
+	if (m_currentFrameKeyPress[scancode]) {
+		if (m_lastFrameKeyPress[scancode]) return KEY_HELD;
+		else return KEY_DOWN;
+	}
+	else {
+		if (m_lastFrameKeyPress[scancode]) return KEY_UP;
+		else return KEY_NOT_PRESSED;
+	}
 }
 
 Game::~Game() {
