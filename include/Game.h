@@ -160,6 +160,7 @@ private:
 
 	// Camera Variables
 	float cameraSpeed = 5.0f;
+	float m_cameraSensitivity = 2.0f;
 	glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, 5.0f);  // Position
 	glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); // Direction (Looking forward)
 	glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);  // Up vector

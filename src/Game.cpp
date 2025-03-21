@@ -149,7 +149,7 @@ void Game::RenderUI() {
 	if (ImGui::IsItemHovered())
 		ImGui::SetTooltip("Controls simulation speed.\nIncreasing this value speeds up the simulation but may reduce numerical accuracy.");
 	ImGui::DragFloat("Camera Speed", &cameraSpeed, 1.0f, 1.0f, 100.0f);
-	ImGui::DragFloat("Mouse Sensitivity", &cameraSpeed, 1.0f, 1.0f, 100.0f);
+	ImGui::DragFloat("Mouse Sensitivity", &m_cameraSensitivity, 1.0f, 1.0f, 100.0f);
 	ImGui::End();
 
 	// Add Planet Menu UI
@@ -265,7 +265,7 @@ void Game::handleMouseEvent(SDL_Event& event) {
 	float xOffset = float(event.motion.xrel);
 	float yOffset = -float(event.motion.yrel); // Inverted
 
-	float sensitivity = 2.0f * deltaTime;
+	float sensitivity = m_cameraSensitivity * deltaTime;
 	xOffset *= sensitivity;
 	yOffset *= sensitivity;
 
