@@ -1,4 +1,10 @@
 #pragma once
+
+#define GAME_MASS_MULTIPLIER 1.0e-6
+#define GAME_LENGTH_MULTIPLIER 1.0e-9
+#define GAME_TIME_MULTIPLIER 1.0e-3
+
+
 #pragma region Main Headers
 #include <glad/glad.h>
 #include <openglDebug.h>
@@ -133,6 +139,7 @@ private:
 	Shader m_mainShader;
 
 	// Camera Variables
+	float cameraSpeed = 5.0f;
 	glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);  // Position
 	glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); // Direction (Looking forward)
 	glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);  // Up vector

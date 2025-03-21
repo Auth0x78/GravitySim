@@ -7,49 +7,6 @@ extern "C"
 	__declspec(dllexport) int AmdPowerXpressRequestHighPerformance = USE_GPU_ENGINE;
 }
 
-//static void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods)
-//{
-//	if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
-//		glfwSetWindowShouldClose(window, GLFW_TRUE);
-//
-//	float cameraSpeed = 2.5f * deltaTime; // Adjust based on frame time
-//	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-//		cameraPos += cameraSpeed * cameraFront;
-//	if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-//		cameraPos -= cameraSpeed * cameraFront;
-//	if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-//		cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-//	if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-//		cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
-//}
-//
-//void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-//	int width = 0, height = 0;
-//	glfwGetFramebufferSize(window, &width, &height);
-//
-//	static float lastX = width / 2.0f, lastY = height / 2.0f;
-//	static float yaw = -90.0f, pitch = 0.0f;
-//
-//	float xOffset = xpos - lastX;
-//	float yOffset = lastY - ypos; // Inverted
-//	lastX = xpos;
-//	lastY = ypos;
-//
-//	float sensitivity = 2.0f * deltaTime;
-//	xOffset *= sensitivity;
-//	yOffset *= sensitivity;
-//
-//	yaw += xOffset;
-//	pitch += yOffset;
-//	pitch = glm::clamp(pitch, -89.0f, 89.0f); // Prevent flipping
-//
-//	glm::vec3 direction;
-//	direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-//	direction.y = sin(glm::radians(pitch));
-//	direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-//	cameraFront = glm::normalize(direction);
-//}
-
 int main(void) {
 
 	int width = 0, height = 0;
@@ -96,17 +53,6 @@ int main(void) {
 
 	// Get Window width and height
 	SDL_GetWindowSizeInPixels(pWindow, &width, &height);
-
-	Sphere sphere0(1.0f, 10, 10);
-
-	//shader loading example
-	Shader mainShader(RESOURCES_PATH "vertex.vert", RESOURCES_PATH "fragment.frag");
-
-	mainShader.Activate();
-	/*
-	mainShader.SetUniformMatrix4fv("view", view);
-	mainShader.SetUniformMatrix4fv("projection", projection);
-	*/
 
 	// Timing variables
 	Uint64 NOW = SDL_GetPerformanceCounter();

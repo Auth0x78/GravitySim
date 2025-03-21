@@ -213,19 +213,19 @@ void Game::handleKeyboard() {
 	}
 
 	// Update Camera Position
-	static float cameraSpeed = 5.0f * deltaTime; // Adjust based on frame time
+	// Adjust based on frame time
 	if (getKeyState(SDL_SCANCODE_W) == KEY_DOWN || getKeyState(SDL_SCANCODE_W) == KEY_HELD)
-		m_cameraPos += cameraSpeed * m_cameraFront;
+		m_cameraPos += float(cameraSpeed * deltaTime) * m_cameraFront;
 	if (getKeyState(SDL_SCANCODE_S) == KEY_DOWN || getKeyState(SDL_SCANCODE_S) == KEY_HELD)
-		m_cameraPos -= cameraSpeed * m_cameraFront;
+		m_cameraPos -= float(cameraSpeed * deltaTime) * m_cameraFront;
 	if (getKeyState(SDL_SCANCODE_A) == KEY_DOWN || getKeyState(SDL_SCANCODE_A) == KEY_HELD)
-		m_cameraPos -= glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * cameraSpeed;
+		m_cameraPos -= glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * float(cameraSpeed * deltaTime);
 	if (getKeyState(SDL_SCANCODE_D) == KEY_DOWN || getKeyState(SDL_SCANCODE_D) == KEY_HELD)
-		m_cameraPos += glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * cameraSpeed;
+		m_cameraPos += glm::normalize(glm::cross(m_cameraFront, m_cameraUp)) * float(cameraSpeed * deltaTime);
 	if (getKeyState(SDL_SCANCODE_LSHIFT) == KEY_DOWN || getKeyState(SDL_SCANCODE_LSHIFT) == KEY_HELD)
-		m_cameraPos -= cameraSpeed * m_cameraUp;
+		m_cameraPos -= float(cameraSpeed * deltaTime) * m_cameraUp;
 	if (getKeyState(SDL_SCANCODE_SPACE) == KEY_DOWN || getKeyState(SDL_SCANCODE_SPACE) == KEY_HELD)
-		m_cameraPos += cameraSpeed * m_cameraUp;
+		m_cameraPos += float(deltaTime * cameraSpeed) * m_cameraUp;
 }
 
 Game::KeyState Game::getKeyState(SDL_Scancode scancode) {
