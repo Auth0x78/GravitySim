@@ -4,7 +4,7 @@ GravitySim is a real-time gravity simulation built with SDL3 and OpenGL. This pr
 
 ## Features
 
-- **Real-Time Simulation:** Experience accurate gravity-based motion in real time.
+- **Real-Time Simulation:** Experience gravity-based motion in real time.
 - **SDL3 & OpenGL Rendering:** Leverages modern graphics with SDL3.
 - **ImGui Docking:** Integrated ImGui UI with docking and multi-viewport support.
 - **Cross-Platform:** Designed to run on multiple operating systems.
