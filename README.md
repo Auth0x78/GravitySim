@@ -1,6 +1,6 @@
 # GravitySim
 
-GravitySim is a real-time gravity simulation built with SDL3 and OpenGL. This project demonstrates interactive physics, rendering techniques, and an ImGui-powered user interface with docking support.
+GravitySim is a fun pass-time gravity simulation built with SDL3 and OpenGL. This project demonstrates interactive physics, rendering techniques, and an ImGui-powered user interface with docking support.
 
 ## Features
 
