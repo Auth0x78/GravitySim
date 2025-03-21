@@ -51,10 +51,7 @@ GravitySim is a fun pass-time gravity simulation built with SDL3 and OpenGL. Thi
 
 ## Screenshots
 
-*Include screenshots or GIFs here to showcase GravitySim in action.*
-
-![GravitySim Screenshot](![image](https://github.com/user-attachments/assets/d2506491-185c-4978-b339-15e80c30729c)
-)
+![image](https://github.com/user-attachments/assets/d2506491-185c-4978-b339-15e80c30729c)
 
 ## Contributing
 
