@@ -53,7 +53,8 @@ GravitySim is a real-time gravity simulation built with SDL3 and OpenGL. This pr
 
 *Include screenshots or GIFs here to showcase GravitySim in action.*
 
-![GravitySim Screenshot](path/to/screenshot.png)
+![GravitySim Screenshot](![image](https://github.com/user-attachments/assets/d2506491-185c-4978-b339-15e80c30729c)
+)
 
 ## Contributing
 
