@@ -1,9 +1,26 @@
 #pragma once
 
-#define GAME_MASS_MULTIPLIER 1.0e-6
-#define GAME_LENGTH_MULTIPLIER 1.0e-9
-#define GAME_TIME_MULTIPLIER 1.0e-3
+#define KG_TO_GMASS 	1.0e-6
+#define METER_TO_GLEN	1.0e-9
+#define KM_TO_GLEN		(1000.0 * METER_TO_GLEN)
+#define SEC_TO_GSEC 	1.0e-6
 
+// DISPLAYED Units:
+// MASS: m [kg]
+// RADIUS: r [km]
+// POSITION: P [10^3 km]
+// VELOCITY: V [km/s]
+
+// Conversion To Game Units:
+// MASS: m [kg] -> m [kg] * kg2gm [gm = Game Mass Unit]
+// LENGTH: r [km] -> (r * 1000)[m] * meter2gl [gl = Game Length Unit]
+// TIME: [s] -> [s] * sec2gs [gs = Game Time Unit]
+// POSITION: P [10^3 km]-> (P * 10^3 * 10^3)[m] * meter2gl [gl]
+// VELOCITY: V [km/s] -> (V * 10^3 [m] * meter2gl) / ([s] * sec2gs) [gl/gs]
+
+
+// G in game units will be = G * meter2gl^3 / (kg2gm * sec2gs^2)
+constexpr double G = (6.67430e-11 * METER_TO_GLEN * METER_TO_GLEN * METER_TO_GLEN) / (KM_TO_GLEN * SEC_TO_GSEC * SEC_TO_GSEC);// In Game Units
 
 #pragma region Main Headers
 #include <glad/glad.h>
@@ -104,6 +121,7 @@ public:
 	void Shutdown();
 
 private:
+	void ApplyGravity(Planet& pl1, Planet& pl2);
 	void handleMouseEvent(SDL_Event& event);
 	void handleKeyboard();
 
@@ -125,7 +143,9 @@ private:
 	SDL_GLContext m_GLContext;
 	ImGuiIO* m_pIO;
 	bool m_running = true;
-	bool m_lookMode = true;
+	bool m_lookMode = false;
+	bool m_runSim = false;
+	float m_timeMultiplier = 1.0f;
 
 	// SDL Property
 	int m_width = 0;
@@ -140,7 +160,7 @@ private:
 
 	// Camera Variables
 	float cameraSpeed = 5.0f;
-	glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);  // Position
+	glm::vec3 m_cameraPos = glm::vec3(0.0f, 0.0f, 5.0f);  // Position
 	glm::vec3 m_cameraFront = glm::vec3(0.0f, 0.0f, -1.0f); // Direction (Looking forward)
 	glm::vec3 m_cameraUp = glm::vec3(0.0f, 1.0f, 0.0f);  // Up vector
 

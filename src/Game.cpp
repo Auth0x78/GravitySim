@@ -73,7 +73,19 @@ bool Game::GameLoop() {
 	// Clean the back buffer and depth buffer
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
-
+	
+	if(m_runSim) {
+		// Apply Gravity
+		size_t planetsCount = m_vPlanets.size();
+		if (planetsCount > 1) {
+			for (size_t i = 0; i < planetsCount - 1; ++i) {
+				for (size_t j = i + 1; j < planetsCount; ++j) {
+					ApplyGravity(m_vPlanets[i], m_vPlanets[j]);
+				}
+			}
+		}
+	}
+	
 	// Active Main Shader
 	m_mainShader.Activate();
 
@@ -85,6 +97,12 @@ bool Game::GameLoop() {
 	m_mainShader.SetUniformMatrix4fv("view", m_view);
 
 	for (auto& planet : m_vPlanets) {
+		if (m_runSim) {
+			// Apply Movement to Planets Before Drawing only if sim is running
+			planet.position += planet.velocity * float(deltaTime);
+			planet.renderer.SetPosition(planet.position);
+		}
+
 		m_mainShader.SetUniformMatrix4fv("model", planet.renderer.GetModelMatrix());
 		m_mainShader.SetUniform3fv("material", planet.material);
 		planet.renderer.Draw();
@@ -102,33 +120,79 @@ void Game::RenderUI() {
 	ImGui_ImplSDL3_NewFrame();
 	ImGui::NewFrame();
 
+	// Main Menu
+	ImGui::Begin("Main Menu");
+	ImGui::Text("Welcome to the Gravity Simulation!");
+	// Instead of placing raw text calls inside a ListBox, we can create an array of strings
+	// and then use ImGui::Selectable for each item so that the ListBox works as intended.
+
+	const char* simulationControls[] = {
+		"Press TAB to toggle cursor mode",
+		"Press ESC to exit the simulation",
+		"Press SPACE to move up",
+		"Press LSHIFT to move down",
+		"Press W/A/S/D to move forward/left/backward/right"
+	};
+
+	if (ImGui::BeginListBox("Simulation Controls", ImVec2(0, IM_ARRAYSIZE(simulationControls) * ImGui::GetTextLineHeightWithSpacing())))
+	{
+		for (int i = 0; i < IM_ARRAYSIZE(simulationControls); i++)
+		{
+			// We pass 'false' for the selected flag since these are just informational
+			ImGui::Selectable(simulationControls[i], false);
+		}
+		ImGui::EndListBox();
+	}
+
+	ImGui::Checkbox("Run Simulation", &m_runSim);
+	ImGui::DragFloat("Simulation Speed", &m_timeMultiplier, 10.0f, 0.0f, 10000.0f);
+	if (ImGui::IsItemHovered())
+		ImGui::SetTooltip("Controls simulation speed.\nIncreasing this value speeds up the simulation but may reduce numerical accuracy.");
+	ImGui::DragFloat("Camera Speed", &cameraSpeed, 1.0f, 1.0f, 100.0f);
+	ImGui::DragFloat("Mouse Sensitivity", &cameraSpeed, 1.0f, 1.0f, 100.0f);
+	ImGui::End();
+
 	// Add Planet Menu UI
 	ImGui::Begin("Add Planet Menu");
-	ImGui::Text("This is for adding planets to scene!");
+	ImGui::Text("Add Planets to Scene!");
 	ImGui::InputText("Enter Name for Planet:", m_uiInputName, 16);
 	ImGui::InputDouble("Mass (in kg):", &m_uiInputMass);
 	ImGui::InputDouble("Radius of Planet(in km):", &m_uiInputRadius);
-	ImGui::InputFloat3("Position of Planet(in 10^3km): ", m_uiInputPos);
+	ImGui::InputFloat3("Position of Planet(in 10^3 km): ", m_uiInputPos);
 	ImGui::InputFloat3("Velocity of Planet(in km/s): ", m_uiInputVel);
 	ImGui::ColorEdit3("Color of Planet: ", m_uiInputCol);
 	
 	if (ImGui::Button("Add Planet")) {
-		// TODO: Convert Input-ed Units to Game Units
-		// For now assume, game units are same as input units
-		// Add Planet to Scene
+		// Input Units:
+		// MASS: m [kg]
+		// RADIUS: r [km]
+		// POSITION: P [10^3 km]
+		// VELOCITY: V [km/s]
+
+		// Conversion To Game Unit:
+		// MASS: m [kg] -> m [kg] * kg2gm [gm = Game Mass Unit]
+		// LENGTH: r [km] -> (r * 1000)[m] * meter2gl [gl = Game Length Unit]
+		// TIME: [s] -> [s] * sec2gs [gs = Game Time Unit]
+		// POSITION: P [10^3 km]-> (P * 10^3)[km] * kilometer2gl [gl]
+		// VELOCITY: V [km/s] -> (V * 10^3 [m] * meter2gl) / ([s] * sec2gs) [gl/gs]
 		
 		// Reserve additional capacity if needed (without changing size)
 		if (m_vPlanets.size() + 1 >= m_vPlanets.capacity()) {
 			m_vPlanets.reserve(static_cast<size_t>(m_vPlanets.size() * 1.5f + 1.0f));
 		}
+		
+		// Unit Conversions
+		float convertedPos[3] = { m_uiInputPos[0] * 1000.0f * KM_TO_GLEN, m_uiInputPos[1] * 1000.0f * KM_TO_GLEN, m_uiInputPos[2] * 1000.0f * KM_TO_GLEN };
+		float convertedVel[3] = { m_uiInputVel[0] * KM_TO_GLEN / SEC_TO_GSEC, m_uiInputVel[1] * KM_TO_GLEN / SEC_TO_GSEC, m_uiInputVel[2] * KM_TO_GLEN / SEC_TO_GSEC };
 
-		m_vPlanets.emplace_back(m_uiInputMass, m_uiInputRadius, m_uiInputPos, m_uiInputVel, m_uiInputCol, m_uiInputName);
+		m_vPlanets.emplace_back(m_uiInputMass * KG_TO_GMASS, m_uiInputRadius * KM_TO_GLEN, convertedPos, convertedVel, m_uiInputCol, m_uiInputName);
 		Planet& planet = m_vPlanets.back();
 
 		planet.renderer.SetPosition(planet.position);
 	}
 	ImGui::End();
 
+	// TODO: Convert Displayed Units from Game Units to Units of interest
 	ImGui::Begin("Plane Info");
 	ImGui::Text("Planets in Scene: %d", m_vPlanets.size());
 	ImGui::Text("Planet's Information: ");
@@ -138,7 +202,11 @@ void Game::RenderUI() {
 		
 		ImGui::Text("Planet Name(ID): %s(%d)", planet.name, i);
 		ImGui::InputDouble("Planet Mass:", &planet.mass);
-		ImGui::InputDouble("Planet Radius:", &planet.radius);
+		if (ImGui::InputDouble("Planet Radius:", &planet.radius)) {
+			// We need to update two planets one for the planet's radius and other for planet's renderer's radius
+			// If the value has changed then update it
+			planet.renderer.SetRadius(planet.radius);
+		}
 		ImGui::Text("Planet Position: (%f, %f, %f)", planet.position.x, planet.position.y, planet.position.z);
 		ImGui::Text("Planet Velocity: (%f, %f, %f)", planet.velocity.x, planet.velocity.y, planet.velocity.z);
 		ImGui::Text("Planet Material: (%f, %f, %f)", planet.material.x, planet.material.y, planet.material.z);
@@ -160,6 +228,22 @@ void Game::RenderUI() {
 		ImGui::RenderPlatformWindowsDefault();
 		SDL_GL_MakeCurrent(backup_window, backup_context);
 	}
+}
+
+void Game::ApplyGravity(Planet& pl1, Planet& pl2) {
+	glm::f64vec3 r12 = pl2.position - pl1.position; // Point from pl1 towards pl2
+
+	if(r12.length() < 1e-10) return; // Prevent Division by Zero (Avoiding NaNs) (within when 0.1m range)
+	
+	double Force = (G * pl1.mass * pl2.mass) / (glm::dot(r12, r12)); // G / r^2
+	r12 = glm::normalize(r12); // Normalize r12
+
+	glm::f64vec3 accel1 = Force / pl1.mass * r12;
+	glm::f64vec3 accel2 = Force / pl2.mass * -r12;
+	
+	// Now apply acceleration to the bodies
+	pl1.velocity += accel1 * (deltaTime * m_timeMultiplier);
+	pl2.velocity += accel2 * (deltaTime * m_timeMultiplier);
 }
 
 void Game::handleMouseEvent(SDL_Event& event) {

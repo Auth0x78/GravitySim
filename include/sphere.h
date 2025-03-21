@@ -15,7 +15,9 @@ public:
 	}
 
 	Sphere(float r, GLuint latDiv, GLuint lonDiv) {
-		Init(r, latDiv, lonDiv);
+		radius = 1.0f;
+		Init(latDiv, lonDiv);
+		SetRadius(r);
 	}
 
 	void Draw()
@@ -23,6 +25,17 @@ public:
 		p_vertexArray->Bind();
 		glDrawElements(GL_TRIANGLES, indicesCount, GL_UNSIGNED_INT, 0);
 		p_vertexArray->Unbind();
+	}
+
+	void SetRadius(double _radius) {
+		if (_radius == 0) {
+			_radius = 1e-6f;
+		}
+
+		double scaleFactor = _radius / radius;
+		radius = _radius;
+
+		modelMat = glm::scale(modelMat, glm::vec3(scaleFactor));
 	}
 	
 	void SetPosition(const glm::vec3& position) {
@@ -38,7 +51,9 @@ public:
 	}
 
 private:
-	void Init(float r = 1.0f, GLuint latDiv = 50, GLuint lonDiv = 50) {
+	void Init( GLuint latDiv = 50, GLuint lonDiv = 50) {
+		const float r = 1.0f; // Unit Parameters
+
 		std::vector<glm::vec3> vertex;
 		std::vector<GLuint> indices;
 
@@ -100,7 +115,7 @@ private:
 	std::unique_ptr<VBO> p_vertexBuffer;
 	std::unique_ptr<EBO> p_indicesBuffer;
 
-	float radius;
+	double radius;
 	glm::mat4 modelMat = glm::mat4(1.0f);
 	size_t indicesCount;
 };

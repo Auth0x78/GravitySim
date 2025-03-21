@@ -48,9 +48,6 @@ int main(void) {
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, GL_TRUE);
 #pragma endregion
 
-	// Set relative mouse mode
-	SDL_SetWindowRelativeMouseMode(pWindow, true); // Enable relative mouse mode
-
 	// Get Window width and height
 	SDL_GetWindowSizeInPixels(pWindow, &width, &height);
 
