@@ -57,6 +57,12 @@ void Game::PollEvents() {
 		case SDL_EVENT_MOUSE_MOTION:
 			handleMouseEvent(event);
 			break;
+		case SDL_EVENT_WINDOW_FOCUS_GAINED:
+			m_windowFocused = true;
+			break;
+		case SDL_EVENT_WINDOW_FOCUS_LOST:
+			m_windowFocused = false;
+			break;
 		default:
 			break;
 		}
@@ -127,7 +133,7 @@ void Game::RenderUI() {
 	// and then use ImGui::Selectable for each item so that the ListBox works as intended.
 
 	const char* simulationControls[] = {
-		"Press TAB to toggle cursor mode",
+		"Press H to toggle cursor mode",
 		"Press ESC to exit the simulation",
 		"Press SPACE to move up",
 		"Press LSHIFT to move down",
@@ -281,9 +287,11 @@ void Game::handleMouseEvent(SDL_Event& event) {
 }
 
 void Game::handleKeyboard() {
+	if (!m_windowFocused) return;
+	if (ImGui::GetIO().WantCaptureKeyboard) return;
 
-	// TAB KEY PRESS
-	if (getKeyState(SDL_SCANCODE_TAB) == KEY_DOWN) {
+	// H KEY PRESS
+	if (getKeyState(SDL_SCANCODE_H) == KEY_DOWN) {
 		// Toggle Cursor
 		m_lookMode = !m_lookMode;
 		SDL_SetWindowRelativeMouseMode(m_pWindow, m_lookMode);

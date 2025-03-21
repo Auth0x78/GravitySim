@@ -142,9 +142,15 @@ private:
 	SDL_Window* m_pWindow;
 	SDL_GLContext m_GLContext;
 	ImGuiIO* m_pIO;
+	
+	// Window Variables
+	bool m_windowFocused = true;
+
+	// Mode Variables
 	bool m_running = true;
 	bool m_lookMode = false;
 	bool m_runSim = false;
+
 	float m_timeMultiplier = 1.0f;
 
 	// SDL Property
